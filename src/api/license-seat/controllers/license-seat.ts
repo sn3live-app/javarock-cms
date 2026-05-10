@@ -1,4 +1,5 @@
 import { factories } from '@strapi/strapi';
+import { hashDeviceId, isServerHashedDeviceId } from '../../../utils/device-id';
 import { hashPassword, issueToken, verifyPassword } from '../../../utils/password';
 
 const UID = 'api::license-seat.license-seat';
@@ -26,10 +27,6 @@ function uniqueStrings(values: string[]): string[] {
   return Array.from(new Set(values.filter(Boolean)));
 }
 
-function isHashedDeviceId(value: string): boolean {
-  return /^(wv|ssaid|aid|adid)-/.test(value);
-}
-
 function fail(ctx, status: number, message: string) {
   ctx.status = status;
   ctx.body = { ok: false, message };
@@ -45,7 +42,12 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     const legacyDeviceId = cleanString(body.legacyDeviceId);
     const appVersion = cleanString(body.appVersion);
     const submittedDeviceIds = uniqueStrings([deviceId, ...deviceIds]);
-    const deviceIdsForMatching = uniqueStrings([...submittedDeviceIds, legacyDeviceId]);
+    const submittedDeviceIdHashes = uniqueStrings(submittedDeviceIds.map(hashDeviceId));
+    const deviceIdsForMatching = uniqueStrings([
+      ...submittedDeviceIdHashes,
+      ...submittedDeviceIds,
+      legacyDeviceId,
+    ]);
 
     if (!username || !password || submittedDeviceIds.length === 0) {
       fail(ctx, 400, 'Username, password, and device ID are required.');
@@ -82,7 +84,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
 
     const linkedDeviceId = cleanString(seat.deviceId);
     const storedDeviceIdsForMatching = uniqueStrings([linkedDeviceId, ...cleanStringArray(seat.deviceIds)]);
-    const storedDeviceIdsForStorage = storedDeviceIdsForMatching.filter(isHashedDeviceId);
+    const storedDeviceIdsForStorage = storedDeviceIdsForMatching.filter(isServerHashedDeviceId);
     const firstActivation = storedDeviceIdsForMatching.length === 0;
     const deviceMatches = storedDeviceIdsForMatching.some((storedDeviceId) =>
       deviceIdsForMatching.includes(storedDeviceId)
@@ -93,9 +95,9 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     }
 
     const token = cleanString(seat.token) || issueToken();
-    const deviceIdToStore = deviceId || submittedDeviceIds[0] || (isHashedDeviceId(linkedDeviceId) ? linkedDeviceId : '');
+    const deviceIdToStore = hashDeviceId(deviceId || submittedDeviceIds[0]);
     const deviceUpgraded = !firstActivation && !storedDeviceIdsForStorage.includes(deviceIdToStore);
-    const mergedDeviceIds = uniqueStrings([...storedDeviceIdsForStorage, ...submittedDeviceIds]);
+    const mergedDeviceIds = uniqueStrings([...storedDeviceIdsForStorage, ...submittedDeviceIdHashes]);
 
     await strapi.db.query(UID).update({
       where: { id: seat.id },

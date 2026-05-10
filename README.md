@@ -34,6 +34,7 @@ Leave these blank when creating a new user:
 
 ```text
 deviceId
+deviceIds
 token
 lastSeenAt
 lastAppVersion
@@ -43,6 +44,8 @@ passwordHash
 The first successful JavaRock app login will bind that username to that Android device. After that, the same username/password cannot be used on another Android device unless you manually clear `deviceId` in Strapi.
 
 To change a user's password later, type the new password into `setPassword` and save. Strapi will clear that field and update `passwordHash`.
+
+Device identifiers are stored as backend-generated HMAC-SHA-256 fingerprints. For best production security, set a long random `DEVICE_ID_HASH_SECRET` value in Render and keep it stable; changing it later will stop existing device bindings from matching.
 
 ## Bridge Config
 
@@ -77,8 +80,13 @@ Request body:
 {
   "username": "user1",
   "password": "password1",
-  "deviceId": "android-device-id",
-  "appVersion": "0.1.0"
+  "deviceId": "primary-client-hashed-device-id",
+  "deviceIds": [
+    "client-hashed-widevine-id",
+    "client-hashed-ssaid",
+    "client-hashed-advertising-id"
+  ],
+  "appVersion": "0.1.9"
 }
 ```
 
@@ -120,6 +128,7 @@ ADMIN_JWT_SECRET=random
 TRANSFER_TOKEN_SALT=random
 JWT_SECRET=random
 ENCRYPTION_KEY=random
+DEVICE_ID_HASH_SECRET=random-long-stable-secret
 ```
 
 Then build JavaRock with:
