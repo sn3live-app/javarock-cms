@@ -26,7 +26,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     }
 
     const seat = await strapi.db.query(UID).findOne({
-      select: ['id', 'username', 'password', 'resetPassword', 'passwordHash', 'deviceId', 'enabled', 'token'],
+      select: ['id', 'username', 'setPassword', 'passwordHash', 'deviceId', 'enabled', 'token'],
       where: { username },
     });
 
@@ -41,15 +41,14 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     }
 
     const storedHash = cleanString(seat.passwordHash);
-    const storedPassword = typeof seat.password === 'string' ? seat.password : '';
-    const storedResetPassword = typeof seat.resetPassword === 'string' ? seat.resetPassword : '';
+    const storedSetPassword = typeof seat.setPassword === 'string' ? seat.setPassword : '';
     const passwordMatchesHash = Boolean(storedHash && verifyPassword(password, storedHash));
-    const passwordMatchesPlaintext = Boolean(!storedHash && (storedPassword === password || storedResetPassword === password));
+    const passwordMatchesPlaintext = Boolean(!storedHash && storedSetPassword === password);
 
     if (!passwordMatchesHash && !passwordMatchesPlaintext) {
-      const message = storedHash || storedPassword
+      const message = storedHash || storedSetPassword
         ? 'Password is incorrect for this username.'
-        : 'No password is saved for this username. Re-enter the password in Strapi and save.';
+        : 'No password is saved for this username. Enter a password in setPassword and save.';
       fail(ctx, 401, message);
       return;
     }
@@ -67,8 +66,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
       where: { id: seat.id },
       data: {
         deviceId: linkedDeviceId || deviceId,
-        password: null,
-        resetPassword: null,
+        setPassword: null,
         passwordHash: storedHash || hashPassword(password),
         token,
         lastSeenAt: new Date().toISOString(),

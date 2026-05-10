@@ -18,11 +18,7 @@
       "unique": true,
       "minLength": 3
     },
-    "password": {
-      "type": "password",
-      "private": true
-    },
-    "resetPassword": {
+    "setPassword": {
       "type": "string",
       "private": true
     },

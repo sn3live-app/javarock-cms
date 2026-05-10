@@ -11,10 +11,8 @@ function applyPasswordHash(data: Record<string, unknown> | undefined) {
     return;
   }
 
-  const resetPassword = typeof data.resetPassword === 'string' ? data.resetPassword.trim() : '';
-  const password = resetPassword || (typeof data.password === 'string' ? data.password.trim() : '');
-
-  data.password = null;
+  const password = typeof data.setPassword === 'string' ? data.setPassword.trim() : '';
+  data.setPassword = null;
   data.resetPassword = null;
 
   if (password.length > 0) {
