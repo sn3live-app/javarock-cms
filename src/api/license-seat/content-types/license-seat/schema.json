@@ -30,6 +30,10 @@
       "type": "string",
       "unique": true
     },
+    "deviceIds": {
+      "type": "json",
+      "private": true
+    },
     "enabled": {
       "type": "boolean",
       "default": true,

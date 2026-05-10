@@ -7,6 +7,29 @@ function cleanString(value: unknown): string {
   return typeof value === 'string' ? value.trim() : '';
 }
 
+function cleanDeviceId(value: unknown): string {
+  const cleaned = cleanString(value);
+  return cleaned === 'unknown' ? '' : cleaned;
+}
+
+function cleanStringArray(value: unknown): string[] {
+  if (!Array.isArray(value)) {
+    return [];
+  }
+
+  return value
+    .map((item) => cleanDeviceId(item))
+    .filter(Boolean);
+}
+
+function uniqueStrings(values: string[]): string[] {
+  return Array.from(new Set(values.filter(Boolean)));
+}
+
+function isHashedDeviceId(value: string): boolean {
+  return /^(wv|ssaid|aid|adid)-/.test(value);
+}
+
 function fail(ctx, status: number, message: string) {
   ctx.status = status;
   ctx.body = { ok: false, message };
@@ -17,16 +40,20 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     const body = ctx.request.body ?? {};
     const username = cleanString(body.username);
     const password = typeof body.password === 'string' ? body.password : '';
-    const deviceId = cleanString(body.deviceId);
+    const deviceId = cleanDeviceId(body.deviceId);
+    const deviceIds = cleanStringArray(body.deviceIds);
+    const legacyDeviceId = cleanString(body.legacyDeviceId);
     const appVersion = cleanString(body.appVersion);
+    const submittedDeviceIds = uniqueStrings([deviceId, ...deviceIds]);
+    const deviceIdsForMatching = uniqueStrings([...submittedDeviceIds, legacyDeviceId]);
 
-    if (!username || !password || !deviceId) {
+    if (!username || !password || submittedDeviceIds.length === 0) {
       fail(ctx, 400, 'Username, password, and device ID are required.');
       return;
     }
 
     const seat = await strapi.db.query(UID).findOne({
-      select: ['id', 'username', 'setPassword', 'passwordHash', 'deviceId', 'enabled', 'token'],
+      select: ['id', 'username', 'setPassword', 'passwordHash', 'deviceId', 'deviceIds', 'enabled', 'token'],
       where: { username },
     });
 
@@ -54,18 +81,27 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     }
 
     const linkedDeviceId = cleanString(seat.deviceId);
-    if (linkedDeviceId && linkedDeviceId !== deviceId) {
+    const storedDeviceIdsForMatching = uniqueStrings([linkedDeviceId, ...cleanStringArray(seat.deviceIds)]);
+    const storedDeviceIdsForStorage = storedDeviceIdsForMatching.filter(isHashedDeviceId);
+    const firstActivation = storedDeviceIdsForMatching.length === 0;
+    const deviceMatches = storedDeviceIdsForMatching.some((storedDeviceId) =>
+      deviceIdsForMatching.includes(storedDeviceId)
+    );
+    if (!firstActivation && !deviceMatches) {
       fail(ctx, 409, 'This username is already linked to another Android device.');
       return;
     }
 
     const token = cleanString(seat.token) || issueToken();
-    const firstActivation = !linkedDeviceId;
+    const deviceIdToStore = deviceId || submittedDeviceIds[0] || (isHashedDeviceId(linkedDeviceId) ? linkedDeviceId : '');
+    const deviceUpgraded = !firstActivation && !storedDeviceIdsForStorage.includes(deviceIdToStore);
+    const mergedDeviceIds = uniqueStrings([...storedDeviceIdsForStorage, ...submittedDeviceIds]);
 
     await strapi.db.query(UID).update({
       where: { id: seat.id },
       data: {
-        deviceId: linkedDeviceId || deviceId,
+        deviceId: deviceIdToStore,
+        deviceIds: mergedDeviceIds,
         setPassword: null,
         passwordHash: storedHash || hashPassword(password),
         token,
@@ -76,7 +112,11 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
 
     ctx.body = {
       ok: true,
-      message: firstActivation ? 'Device linked successfully.' : 'Access active on this device.',
+      message: firstActivation
+        ? 'Device linked successfully.'
+        : deviceUpgraded
+          ? 'Device link upgraded successfully.'
+          : 'Access active on this device.',
       token,
     };
   },

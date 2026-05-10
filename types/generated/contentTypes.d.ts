@@ -504,10 +504,9 @@ export interface ApiLicenseSeatLicenseSeat extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     notes: Schema.Attribute.Text;
-    password: Schema.Attribute.Password & Schema.Attribute.Private;
     passwordHash: Schema.Attribute.Text & Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
-    resetPassword: Schema.Attribute.String & Schema.Attribute.Private;
+    setPassword: Schema.Attribute.String & Schema.Attribute.Private;
     token: Schema.Attribute.Text & Schema.Attribute.Private;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
