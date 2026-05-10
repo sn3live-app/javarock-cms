@@ -1,5 +1,5 @@
 import { factories } from '@strapi/strapi';
-import { issueToken, verifyPassword } from '../../../utils/password';
+import { hashPassword, issueToken, verifyPassword } from '../../../utils/password';
 
 const UID = 'api::license-seat.license-seat';
 
@@ -26,11 +26,30 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     }
 
     const seat = await strapi.db.query(UID).findOne({
+      select: ['id', 'username', 'password', 'passwordHash', 'deviceId', 'enabled', 'token'],
       where: { username },
     });
 
-    if (!seat || seat.enabled === false || !seat.passwordHash || !verifyPassword(password, seat.passwordHash)) {
-      fail(ctx, 401, 'Invalid username or password.');
+    if (!seat) {
+      fail(ctx, 401, 'No license seat found for this username.');
+      return;
+    }
+
+    if (seat.enabled === false) {
+      fail(ctx, 403, 'This username is disabled.');
+      return;
+    }
+
+    const storedHash = cleanString(seat.passwordHash);
+    const storedPassword = typeof seat.password === 'string' ? seat.password : '';
+    const passwordMatchesHash = storedHash && verifyPassword(password, storedHash);
+    const passwordMatchesPlaintext = !storedHash && storedPassword && storedPassword === password;
+
+    if (!passwordMatchesHash && !passwordMatchesPlaintext) {
+      const message = storedHash || storedPassword
+        ? 'Password is incorrect for this username.'
+        : 'No password is saved for this username. Re-enter the password in Strapi and save.';
+      fail(ctx, 401, message);
       return;
     }
 
@@ -47,6 +66,8 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
       where: { id: seat.id },
       data: {
         deviceId: linkedDeviceId || deviceId,
+        password: null,
+        passwordHash: storedHash || hashPassword(password),
         token,
         lastSeenAt: new Date().toISOString(),
         lastAppVersion: appVersion || null,
