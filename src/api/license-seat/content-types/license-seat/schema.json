@@ -22,6 +22,10 @@
       "type": "password",
       "private": true
     },
+    "resetPassword": {
+      "type": "string",
+      "private": true
+    },
     "passwordHash": {
       "type": "text",
       "private": true

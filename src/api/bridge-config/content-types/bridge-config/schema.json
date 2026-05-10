@@ -1,0 +1,34 @@
+{
+  "kind": "singleType",
+  "collectionName": "bridge_configs",
+  "info": {
+    "singularName": "bridge-config",
+    "pluralName": "bridge-configs",
+    "displayName": "Bridge Config",
+    "description": "Default JavaRock bridge destination shown in the Android app."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "serverHost": {
+      "type": "string",
+      "required": true
+    },
+    "serverPort": {
+      "type": "biginteger",
+      "required": true
+    },
+    "serverName": {
+      "type": "string",
+      "default": "JavaRock",
+      "required": true
+    },
+    "enabled": {
+      "type": "boolean",
+      "required": true,
+      "default": true
+    }
+  }
+}

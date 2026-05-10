@@ -26,7 +26,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
     }
 
     const seat = await strapi.db.query(UID).findOne({
-      select: ['id', 'username', 'password', 'passwordHash', 'deviceId', 'enabled', 'token'],
+      select: ['id', 'username', 'password', 'resetPassword', 'passwordHash', 'deviceId', 'enabled', 'token'],
       where: { username },
     });
 
@@ -42,8 +42,9 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
 
     const storedHash = cleanString(seat.passwordHash);
     const storedPassword = typeof seat.password === 'string' ? seat.password : '';
-    const passwordMatchesHash = storedHash && verifyPassword(password, storedHash);
-    const passwordMatchesPlaintext = !storedHash && storedPassword && storedPassword === password;
+    const storedResetPassword = typeof seat.resetPassword === 'string' ? seat.resetPassword : '';
+    const passwordMatchesHash = Boolean(storedHash && verifyPassword(password, storedHash));
+    const passwordMatchesPlaintext = Boolean(!storedHash && (storedPassword === password || storedResetPassword === password));
 
     if (!passwordMatchesHash && !passwordMatchesPlaintext) {
       const message = storedHash || storedPassword
@@ -67,6 +68,7 @@ export default factories.createCoreController(UID, ({ strapi }) => ({
       data: {
         deviceId: linkedDeviceId || deviceId,
         password: null,
+        resetPassword: null,
         passwordHash: storedHash || hashPassword(password),
         token,
         lastSeenAt: new Date().toISOString(),

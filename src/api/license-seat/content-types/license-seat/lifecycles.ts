@@ -7,12 +7,15 @@ type LifecycleEvent = {
 };
 
 function applyPasswordHash(data: Record<string, unknown> | undefined) {
-  if (!data || typeof data.password !== 'string') {
+  if (!data) {
     return;
   }
 
-  const password = data.password.trim();
+  const resetPassword = typeof data.resetPassword === 'string' ? data.resetPassword.trim() : '';
+  const password = resetPassword || (typeof data.password === 'string' ? data.password.trim() : '');
+
   data.password = null;
+  data.resetPassword = null;
 
   if (password.length > 0) {
     data.passwordHash = hashPassword(password);

@@ -25,7 +25,7 @@ For each allowed user, fill:
 
 ```text
 username
-password
+resetPassword
 enabled = true
 notes, optional
 ```
@@ -38,9 +38,31 @@ token
 lastSeenAt
 lastAppVersion
 passwordHash
+password
 ```
 
 The first successful JavaRock app login will bind that username to that Android device. After that, the same username/password cannot be used on another Android device unless you manually clear `deviceId` in Strapi.
+
+To change a user's password later, type the new password into `resetPassword` and save. Strapi will clear that field and update `passwordHash`.
+
+## Bridge Config
+
+In Strapi Admin, open **Content Manager** and create or edit the **Bridge Config** single type.
+
+Fill:
+
+```text
+serverHost
+serverPort
+serverName
+enabled = true
+```
+
+The Android app reads this from:
+
+```text
+GET /api/bridge-config
+```
 
 ## Android Endpoint
 
