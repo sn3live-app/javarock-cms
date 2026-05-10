@@ -1,0 +1,52 @@
+{
+  "kind": "collectionType",
+  "collectionName": "license_seats",
+  "info": {
+    "singularName": "license-seat",
+    "pluralName": "license-seats",
+    "displayName": "License Seat",
+    "description": "One JavaRock username/password seat linked to one Android device."
+  },
+  "options": {
+    "draftAndPublish": false
+  },
+  "pluginOptions": {},
+  "attributes": {
+    "username": {
+      "type": "string",
+      "required": true,
+      "unique": true,
+      "minLength": 3
+    },
+    "password": {
+      "type": "password",
+      "private": true
+    },
+    "passwordHash": {
+      "type": "text",
+      "private": true
+    },
+    "deviceId": {
+      "type": "string",
+      "unique": true
+    },
+    "enabled": {
+      "type": "boolean",
+      "default": true,
+      "required": true
+    },
+    "token": {
+      "type": "text",
+      "private": true
+    },
+    "lastSeenAt": {
+      "type": "datetime"
+    },
+    "lastAppVersion": {
+      "type": "string"
+    },
+    "notes": {
+      "type": "text"
+    }
+  }
+}
